@@ -45,7 +45,7 @@ pip install -r requirements.txt
 python -m streamlit run gradient_quest/app.py
 ```
 
-Streamlit opens the app in your browser (default: http://localhost:8501).
+Streamlit opens the app in your browser (default: http://localhost:8501 or Live Demo: https://learngrad.onrender.com)
 
 ## Project Structure
 
@@ -53,7 +53,7 @@ Streamlit opens the app in your browser (default: http://localhost:8501).
 .
 ├── requirements.txt              # Python dependencies
 ├── README.md
-├── GameGuide.md / implementation.md  # Design & implementation notes
+├── GameGuide.md
 ├── GradientQuest/
 │   ├── app.py                    # Home dashboard (XP, streak, journey) + entry point
 │   ├── engine/
@@ -151,5 +151,5 @@ matches what the engine actually computes.
 
 ## Inspired By
 
-- [Andrej Karpathy's micrograd](https://github.com/karpathy/micrograd) — the original scalar autograd engine and `Module` pattern.
+- The original scalar autograd engine and `Module` pattern.
 - Extended here with additional activations (`tanh`, `sigmoid`, `exp`), configurable neurons, node labels for visualization, and a full gamified learning experience.
