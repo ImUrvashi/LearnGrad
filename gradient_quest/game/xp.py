@@ -4,6 +4,17 @@ import json
 import os
 from datetime import date, timedelta
 
+
+def _get_db():
+    """Lazy import of the db module."""
+    import sys as _sys
+    _db_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _db_dir not in _sys.path:
+        _sys.path.insert(0, _db_dir)
+    import db
+    return db
+
+
 DEFAULT_PROGRESS = {
     "xp": 0,
     "level": 1,
@@ -29,8 +40,15 @@ def _ensure_data_dir():
     os.makedirs(DATA_DIR, exist_ok=True)
 
 
-def load_progress(path=None):
+def load_progress(path=None, user_email=None):
     """Load player progress from JSON file. Migrates old format."""
+    if user_email:
+        db = _get_db()
+        data = db.get_active_session(user_email)
+        for key, default in DEFAULT_PROGRESS.items():
+            if key not in data:
+                data[key] = default
+        return data
     path = path or PROGRESS_FILE
     if os.path.exists(path):
         with open(path, 'r') as f:
@@ -43,8 +61,12 @@ def load_progress(path=None):
     return dict(DEFAULT_PROGRESS)
 
 
-def save_progress(progress, path=None):
+def save_progress(progress, path=None, user_email=None):
     """Save player progress to JSON file."""
+    if user_email:
+        db = _get_db()
+        db.save_session(user_email, progress)
+        return
     path = path or PROGRESS_FILE
     _ensure_data_dir()
     with open(path, 'w') as f:

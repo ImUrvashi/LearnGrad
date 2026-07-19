@@ -4,6 +4,7 @@ import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from auth import require_auth, get_current_user
 import plotly.graph_objects as go
 from engine.value import Value
 from engine.nn import MLP
@@ -13,9 +14,15 @@ from game.xp import load_progress, save_progress, add_xp, award_badge
 st.set_page_config(page_title="Boss Fights | Gradient Quest", page_icon="🐉", layout="wide")
 from game.ui import setup_chrome
 setup_chrome()
+
+# ── Require authentication ──
+require_auth()
+user = get_current_user()
+user_email = user["email"]
+
 st.title("🐉 Boss Fights")
 
-progress = load_progress()
+progress = load_progress(user_email=user_email)
 
 for boss in BOSSES:
     badge_earned = boss["badge"] in progress["badges"]
@@ -45,7 +52,7 @@ for boss in BOSSES:
 
                     progress = add_xp(progress, xp_earned)
                     progress = award_badge(progress, boss["badge"])
-                    save_progress(progress)
+                    save_progress(progress, user_email=user_email)
                 else:
                     st.error(f"💀 The {boss['name']} overpowered you!")
                     st.markdown(f"**Hint:** {explanation}")
@@ -84,7 +91,7 @@ for boss in BOSSES:
                         template="plotly_dark",
                         height=350,
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
 
                 elif boss["mechanic"] == "depth_experiment":
                     # Show how gradients grow with network depth
@@ -113,5 +120,5 @@ for boss in BOSSES:
                         template="plotly_dark",
                         height=350,
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                     st.caption("As depth increases, gradients can explode — gradient clipping prevents this.")

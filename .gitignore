@@ -1,0 +1,14 @@
+# Secrets
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# App data (local SQLite DB + progress files)
+gradient_quest/data/
+
+# OS
+.DS_Store

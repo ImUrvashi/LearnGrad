@@ -4,6 +4,7 @@ import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from auth import require_auth, get_current_user
 import plotly.graph_objects as go
 from graphviz import Digraph
 from engine.value import Value
@@ -13,6 +14,12 @@ from game.xp import load_progress, save_progress, add_xp, award_badge
 st.set_page_config(page_title="Train MLP | Gradient Quest", page_icon="🧠", layout="wide")
 from game.ui import setup_chrome
 setup_chrome()
+
+# ── Require authentication ──
+require_auth()
+user = get_current_user()
+user_email = user["email"]
+
 st.title("🧠 Train Your MLP")
 st.caption("A TensorFlow-Playground-style trainer — running entirely on your own autograd engine.")
 
@@ -164,13 +171,13 @@ chart_l.markdown("##### 📉 Training loss")
 loss_ph = chart_l.empty()
 chart_r.markdown("##### 🗺️ Decision surface")
 bound_ph = chart_r.empty()
-loss_ph.plotly_chart(loss_fig([]), use_container_width=True, key="loss_init")
-bound_ph.plotly_chart(decision_fig(_tmp, xs, ys), use_container_width=True, key="bound_init")
+loss_ph.plotly_chart(loss_fig([]), width="stretch", key="loss_init")
+bound_ph.plotly_chart(decision_fig(_tmp, xs, ys), width="stretch", key="bound_init")
 
 # Row 4 — results placeholder
 results_ph = st.container()
 
-if st.button("🚀 Train", type="primary", use_container_width=True):
+if st.button("🚀 Train", type="primary", width="stretch"):
     model = MLP(len(xs[0]), architecture, activation=activation)
     losses = []
     best = float("inf")
@@ -191,12 +198,12 @@ if st.button("🚀 Train", type="primary", use_container_width=True):
 
         if epoch % net_every == 0 or epoch == epochs - 1:
             net_ph.graphviz_chart(draw_network(model, input_labels).source)
-            loss_ph.plotly_chart(loss_fig(losses), use_container_width=True, key=f"loss_{epoch}")
+            loss_ph.plotly_chart(loss_fig(losses), width="stretch", key=f"loss_{epoch}")
             epoch_metric.metric("Epoch", f"{epoch + 1}/{epochs}")
             loss_metric.metric("Loss", f"{loss.data:.4f}")
             best_metric.metric("Best loss", f"{best:.4f}")
         if epoch % bound_every == 0 or epoch == epochs - 1:
-            bound_ph.plotly_chart(decision_fig(model, xs, ys), use_container_width=True, key=f"bound_{epoch}")
+            bound_ph.plotly_chart(decision_fig(model, xs, ys), width="stretch", key=f"bound_{epoch}")
 
     # ── Results ──
     with results_ph:
@@ -210,16 +217,16 @@ if st.button("🚀 Train", type="primary", use_container_width=True):
                 pred = out.data if isinstance(out, Value) else out
                 ok = "✅" if abs(pred - yt) < 0.5 else "❌"
                 rows.append({"Input": str(x), "Pred": f"{pred:.2f}", "Target": yt, "": ok})
-            st.dataframe(rows, hide_index=True, use_container_width=True, height=180)
+            st.dataframe(rows, hide_index=True, width="stretch", height=180)
         with res_r:
             st.markdown("##### 🏁 Outcome")
             if losses[-1] < 1.0:
                 st.success(f"🎉 Converged! Final loss = {losses[-1]:.4f}")
-                progress = load_progress()
+                progress = load_progress(user_email=user_email)
                 already = "Neural Trainer" in progress["badges"]
                 progress = add_xp(progress, 50)
                 progress = award_badge(progress, "Neural Trainer")
-                save_progress(progress)
+                save_progress(progress, user_email=user_email)
                 st.info("+50 XP" if already else "+50 XP | 🏅 Neural Trainer badge earned!")
             else:
                 st.warning(f"Final loss = {losses[-1]:.4f}.")

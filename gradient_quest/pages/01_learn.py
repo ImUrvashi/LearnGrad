@@ -4,6 +4,7 @@ import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from auth import require_auth, get_current_user
 from engine.value import Value
 from visualization.graph import draw_graph
 from game.challenges import get_challenges_for_chapter, check_answer
@@ -16,6 +17,11 @@ from game.story import CHAPTERS, get_unlocked_chapters
 st.set_page_config(page_title="Learn | Gradient Quest", page_icon="📖", layout="wide")
 from game.ui import setup_chrome
 setup_chrome()
+
+# ── Require authentication ──
+require_auth()
+user = get_current_user()
+user_email = user["email"]
 
 # ── Theme-aware CSS ──
 st.markdown("""
@@ -84,7 +90,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-progress = load_progress()
+progress = load_progress(user_email=user_email)
 unlocked = get_unlocked_chapters(progress["xp"])
 unlocked_ids = sorted(ch["id"] for ch in unlocked)
 
@@ -94,6 +100,9 @@ if not unlocked_ids:
 
 # ── Chapter selector: default to first incomplete chapter (once) ──
 completed = progress["completed_challenges"]
+
+if "learn_chapter_pending" in st.session_state:
+    st.session_state["learn_chapter"] = st.session_state.pop("learn_chapter_pending")
 
 if "learn_chapter" not in st.session_state or st.session_state["learn_chapter"] not in unlocked_ids:
     default_cid = unlocked_ids[0]
@@ -181,20 +190,20 @@ if current_challenge is None:
     with cta:
         if next_unlocked:
             nxt = next(c for c in CHAPTERS if c["id"] == next_unlocked[0])
-            if st.button(f"▶️ Next: {nxt['name']}", use_container_width=True, type="primary"):
-                st.session_state["learn_chapter"] = next_unlocked[0]
+            if st.button(f"▶️ Next: {nxt['name']}", width="stretch", type="primary"):
+                st.session_state["learn_chapter_pending"] = next_unlocked[0]
                 st.rerun()
         elif locked_next:
             st.button(f"🔒 {locked_next['name']} · needs {locked_next['unlock_xp']} XP",
-                      use_container_width=True, disabled=True)
+                      width="stretch", disabled=True)
         else:
             st.success("🏆 You've completed every chapter!")
     with ctb:
-        if st.button("🔁 Retake this chapter", use_container_width=True):
+        if st.button("🔁 Retake this chapter", width="stretch"):
             for q in chapter["challenges"]:
                 if q in progress["completed_challenges"]:
                     progress["completed_challenges"].remove(q)
-            save_progress(progress)
+            save_progress(progress, user_email=user_email)
             st.rerun()
 
     st.stop()
@@ -237,19 +246,19 @@ answer = st.radio("Choose your answer:", current_challenge["options"],
 st.markdown("<br>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if st.button("✅ Check Answer", use_container_width=True, type="primary"):
+    if st.button("✅ Check Answer", width="stretch", type="primary"):
         correct, xp_earned = check_answer(current_challenge["id"], answer)
         if correct:
             st.markdown(f'<div class="feedback-correct">✅ Correct! +{xp_earned} XP</div>', unsafe_allow_html=True)
             st.balloons()
             progress = add_xp(progress, xp_earned)
             progress = mark_challenge_complete(progress, current_challenge["id"])
-            save_progress(progress)
+            save_progress(progress, user_email=user_email)
             st.session_state["just_answered"] = True
             st.rerun()
         else:
             progress = lose_heart(progress)
-            save_progress(progress)
+            save_progress(progress, user_email=user_email)
             remaining = progress["hearts"]
             st.markdown(f'<div class="feedback-wrong">❌ Not quite! Lost a heart. ({remaining} left)</div>', unsafe_allow_html=True)
             if remaining == 0:

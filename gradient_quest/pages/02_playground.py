@@ -8,6 +8,7 @@ import streamlit as st
 import sys, os, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from auth import require_auth
 from engine.value import Value
 from visualization.graph import draw_graph, trace
 from visualization.forward_pass import get_topo_order, node_formula
@@ -16,6 +17,9 @@ from visualization.backprop import generate_backprop_steps, get_node_colors_at_s
 st.set_page_config(page_title="Playground | Gradient Quest", page_icon="🧮", layout="wide")
 from game.ui import setup_chrome
 setup_chrome()
+
+# ── Require authentication ──
+require_auth()
 
 st.markdown("""
 <style>

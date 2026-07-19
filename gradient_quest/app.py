@@ -6,6 +6,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from auth import require_auth, get_current_user
 from game.xp import load_progress, save_progress, update_streak, get_xp_for_next_level, MAX_HEARTS
 from game.story import CHAPTERS, get_unlocked_chapters
 from game.ui import setup_chrome
@@ -19,10 +20,15 @@ st.set_page_config(
 
 setup_chrome()
 
+# ── Require authentication ──
+require_auth()
+user = get_current_user()
+user_email = user["email"]
+
 # ── Load and update progress ──
-progress = load_progress()
+progress = load_progress(user_email=user_email)
 progress = update_streak(progress)
-save_progress(progress)
+save_progress(progress, user_email=user_email)
 
 xp = progress["xp"]
 streak = progress.get("streak", 0)
