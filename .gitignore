@@ -12,3 +12,6 @@ gradient_quest/data/
 
 # OS
 .DS_Store
+
+# Local notes not meant for the public repo
+implementation.md
