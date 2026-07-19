@@ -1,9 +1,14 @@
 """Google OAuth 2.0 authentication for Gradient Quest."""
 
+import os
 import streamlit as st
+from dotenv import load_dotenv
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 import google.auth.transport.requests
+
+_ENV_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+load_dotenv(_ENV_FILE)  # loads local .env for dev; no-op if the file doesn't exist (e.g. on Render)
 
 
 SCOPES = [
@@ -12,22 +17,41 @@ SCOPES = [
     'https://www.googleapis.com/auth/userinfo.profile',
 ]
 
+_ENV_VARS = {
+    "client_id": "GOOGLE_CLIENT_ID",
+    "client_secret": "GOOGLE_CLIENT_SECRET",
+    "redirect_uri": "GOOGLE_REDIRECT_URI",
+}
+
+
+def _oauth_config(key):
+    """Get a Google OAuth config value from the environment (.env locally, Render env vars in prod)."""
+    env_var = _ENV_VARS[key]
+    value = os.environ.get(env_var)
+    if not value:
+        raise RuntimeError(
+            f"Missing {env_var}. Set it in .env (local) or in your Render service's "
+            "Environment Variables (production)."
+        )
+    return value
+
 
 def _get_google_flow():
-    """Create a Google OAuth flow from Streamlit secrets."""
+    """Create a Google OAuth flow from environment variables."""
+    redirect_uri = _oauth_config("redirect_uri")
     client_config = {
         "web": {
-            "client_id": st.secrets["google_auth"]["client_id"],
-            "client_secret": st.secrets["google_auth"]["client_secret"],
+            "client_id": _oauth_config("client_id"),
+            "client_secret": _oauth_config("client_secret"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "redirect_uris": [st.secrets["google_auth"]["redirect_uri"]],
+            "redirect_uris": [redirect_uri],
         }
     }
     flow = Flow.from_client_config(
         client_config, scopes=SCOPES, autogenerate_code_verifier=True
     )
-    flow.redirect_uri = st.secrets["google_auth"]["redirect_uri"]
+    flow.redirect_uri = redirect_uri
     return flow
 
 
@@ -55,7 +79,7 @@ def _handle_oauth_callback():
             request = google.auth.transport.requests.Request()
             id_info = id_token.verify_oauth2_token(
                 credentials.id_token, request,
-                st.secrets["google_auth"]["client_id"]
+                _oauth_config("client_id")
             )
             st.session_state["user"] = {
                 "email": id_info.get("email", ""),
