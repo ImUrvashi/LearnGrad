@@ -1,4 +1,4 @@
-# ⚡ Gradient Quest
+# LearnGrad
 
 **An interactive, gamified app that teaches neural networks and backpropagation from first principles — built on a custom scalar autograd engine (no PyTorch, no TensorFlow).**
 
